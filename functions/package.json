@@ -14,11 +14,13 @@
   },
   "main": "lib/index.js",
   "dependencies": {
+    "@types/uuid": "^9.0.8",
     "dotenv": "^16.4.5",
     "dotnet": "^1.1.4",
     "firebase-admin": "^11.11.1",
     "firebase-functions": "^4.3.1",
-    "openai": "^4.40.0"
+    "openai": "^4.40.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.1.0",
