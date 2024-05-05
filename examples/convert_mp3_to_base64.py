@@ -10,5 +10,5 @@ def write_binary(binary_data, fileName):
     with open(fileName, "w") as f:
         f.write(base64_text)
 
-write_binary(get_mp3_binary("sample1.mp3"), "output.txt")
+write_binary(get_mp3_binary("audio.mp3"), "audio.txt")
 

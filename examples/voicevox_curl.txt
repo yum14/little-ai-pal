@@ -1,0 +1,4 @@
+curl -s -X POST "[SERVICE_NAME]/audio_query?speaker=1" --get --data-urlencode text@voicevox.txt > query.json
+
+curl -s -H "Content-Type: application/json" -X POST -d @query.json "[SERVICE_NAME]/synthesis?speaker=1" > audio.wav
+

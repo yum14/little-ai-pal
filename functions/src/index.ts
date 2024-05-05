@@ -31,6 +31,8 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 import * as uuid from 'uuid';
+import axios from 'axios';
+import * as zlib from 'zlib';
 
 interface RequestData {
     id: string;
@@ -66,8 +68,11 @@ export const conversation = onRequest(
 
             const openai = new OpenAI(option);
 
+            // Base64デコード
+            const inputAudioBinary = Buffer.from(req.audioData, 'base64');
+
             // OpenAI 文字起こし
-            const transcriptions = await createTranscriptions(openai, req.audioData);
+            const transcriptions = await createTranscriptions(openai, inputAudioBinary);
 
             // データ取得
             const data = req.id ? await getConversation(req.id, db) : null;
@@ -78,22 +83,33 @@ export const conversation = onRequest(
                 model: 'gpt-3.5-turbo-16k',
                 messages: generate(transcriptions, histories)
             });
-
             const answer = openaiResponse.choices[0].message?.content ?? '';
+
+            // 音声合成
+            const audioBuffer = await createAudio(answer);
+
+            // gzip圧縮
+            const gzipAsync = util.promisify(zlib.gzip);
+            const comprettionBeffer = await gzipAsync(audioBuffer);
+            
+            // base64エンコード
+            const encodedWav = comprettionBeffer.toString('base64');
+
+            // データ登録、ID発行
             const maxDbSeq = histories.length > 0 ? Math.max(...histories.map(val => val.seq)) : 0;
             const newHistories: ConversationHistory[] = [
                 { role: 'user', content: transcriptions, seq: maxDbSeq + 1 },
                 { role: 'assistant', content: answer, seq: maxDbSeq + 2 }
             ];
-
-            // データ登録、ID発行
             const newId: string = data ? await updateConversation(req.id, newHistories, db) : await createConversation(newHistories, db);
 
-            response.send({ id: newId, content: answer });
+            response.send({ id: newId, content: encodedWav });
+            return;
 
         } catch (error) {
             logger.error(error);
             response.status(500).send((error as Error).message);
+            return;
         }
     }
 );
@@ -168,7 +184,7 @@ const createConversation = async (histories: ConversationHistory[], db: Firebase
     return res.id;
 }
 
-const createTranscriptions = async (client: OpenAI, audioData: string): Promise<string> => {
+const createTranscriptions = async (client: OpenAI, audioData: Buffer): Promise<string> => {
 
     const tempDir = os.tmpdir();
     const fileName = uuid.v4();
@@ -177,12 +193,9 @@ const createTranscriptions = async (client: OpenAI, audioData: string): Promise<
     // コールバック関数だと大変なので、awaitで待てるように書き換え
     const writeFileAsync = util.promisify(fs.writeFile);
 
-    // Base64データをバイナリにデコード
-    const binaryData = Buffer.from(audioData, 'base64');
-
     // ローカルの/tmp以下のファイルに音声データを書き込み
     // ※tempのファイルはfunctions終了時に削除される
-    await writeFileAsync(tempFilePath, binaryData).catch((error: Error) => {
+    await writeFileAsync(tempFilePath, audioData).catch((error: Error) => {
         throw new Error('Failed to write audio file. message: ' + error.message);
     });
 
@@ -198,4 +211,21 @@ const createTranscriptions = async (client: OpenAI, audioData: string): Promise<
     });
 
     return transcription.text;
+}
+
+const createAudio = async (text: string): Promise<Buffer> => {
+
+    const serverName = process.env.VOICEVOX_SERVER_NAME;
+
+    // クエリ生成
+    const query = await axios.post(`${serverName}/audio_query?speaker=1&text=${encodeURIComponent(text)}`).catch(error => {
+        throw new Error('The request to the audio_query API failed. message: ' + error.message)
+    });
+
+    // 音声合成
+    const audio = await axios.post(`${serverName}/synthesis?speaker=1`, query.data).catch(error => {
+        throw new Error('The request to the synthesis API failed. message: ' + error.message)
+    });
+    
+    return audio.data;
 }
