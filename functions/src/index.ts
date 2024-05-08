@@ -24,7 +24,6 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { Conversation, ConversationHistory } from './interfaces/conversation'
 import { generate } from './conversation';
 import { converter } from './converter';
-import * as dotenv from 'dotenv';
 import { OpenAI, ClientOptions } from 'openai';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -39,7 +38,6 @@ interface RequestData {
     audioData: string;
 }
 
-dotenv.config();
 admin.initializeApp();
 const db = getFirestore();
 
@@ -86,9 +84,9 @@ export const conversation = onRequest(
             const answer = openaiResponse.choices[0].message?.content ?? '';
 
             // 音声合成
-            const audioBuffer = await createAudio(answer);
+            const audioBuffer: Buffer = await createAudio(answer);
 
-            // gzip圧縮
+            // // gzip圧縮
             const gzipAsync = util.promisify(zlib.gzip);
             const comprettionBeffer = await gzipAsync(audioBuffer);
             
@@ -103,8 +101,9 @@ export const conversation = onRequest(
             ];
             const newId: string = data ? await updateConversation(req.id, newHistories, db) : await createConversation(newHistories, db);
 
+            response.set('content-type', 'application/json')
             response.send({ id: newId, content: encodedWav });
-            return;
+
 
         } catch (error) {
             logger.error(error);
@@ -215,17 +214,23 @@ const createTranscriptions = async (client: OpenAI, audioData: Buffer): Promise<
 
 const createAudio = async (text: string): Promise<Buffer> => {
 
-    const serverName = process.env.VOICEVOX_SERVER_NAME;
+    const baseUrl = process.env.VOICEVOX_BASE_URL;
 
     // クエリ生成
-    const query = await axios.post(`${serverName}/audio_query?speaker=1&text=${encodeURIComponent(text)}`).catch(error => {
+    const query = await axios.post(`${baseUrl}/audio_query?speaker=1&text=${encodeURIComponent(text)}`).catch(error => {
         throw new Error('The request to the audio_query API failed. message: ' + error.message)
     });
 
     // 音声合成
-    const audio = await axios.post(`${serverName}/synthesis?speaker=1`, query.data).catch(error => {
+    const audio = await axios.post(`${baseUrl}/synthesis?speaker=1`, JSON.stringify(query.data), {
+        responseType: 'arraybuffer',
+        headers: {
+            'accept': 'audio/wav',
+            'content-type': 'application/json'
+        }
+    }).catch(error => {
         throw new Error('The request to the synthesis API failed. message: ' + error.message)
     });
-    
-    return audio.data;
+
+    return Buffer.from(audio.data, 'binary');
 }
