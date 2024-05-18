@@ -1,5 +1,5 @@
 import { injectable } from 'tsyringe';
-import { SpeechConfig, AudioConfig, SpeechRecognizer, AudioInputStream, SpeechRecognitionResult, ResultReason } from 'microsoft-cognitiveservices-speech-sdk';
+import { SpeechConfig, AudioConfig, SpeechRecognizer, AudioInputStream, SpeechRecognitionResult, ResultReason, NoMatchReason, NoMatchDetails } from 'microsoft-cognitiveservices-speech-sdk';
 import { ISpeechToText } from '../interfaces/ISpeechToText';
 
 @injectable()
@@ -12,10 +12,9 @@ class AzureSpeechToText implements ISpeechToText {
         this.speechConfig.speechRecognitionLanguage = 'ja-JP';
     }
 
-    public async recognize(audioBuffer: Buffer): Promise<string> {
-
+    public async recognize(buffer: Buffer): Promise<string> {
         let pushStream = AudioInputStream.createPushStream();
-        pushStream.write(audioBuffer);
+        pushStream.write(buffer);
         pushStream.close();
 
         const audioConfig = AudioConfig.fromStreamInput(pushStream)

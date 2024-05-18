@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import 'reflect-metadata';
 import { container } from '../DI/di';
-import { Conversation, ConversationContent, ConversationsDbClient, IConversationsDbClient } from '../services/conversationsDbClient';
+import { ConversationContent, ConversationsDbClient, IConversationsDbClient } from '../services/conversationsDbClient';
 import * as util from 'util';
 import * as zlib from 'zlib';
 import { ChatCompletionsClient, IChatCompletionsClient } from '../services/chatCompletionsClient';
@@ -29,10 +29,10 @@ export const conversations = async (request: HttpRequest, context: InvocationCon
     const body = await request.json() as RequestBody;
 
     // Base64デコード
-    const inputAudioBuffer = Buffer.from(body.audioData, 'base64');
+    const decodedBuffer = Buffer.from(body.audioData, 'base64');
 
     // 文字起こし
-    const transcription = await sttClient.recognize(inputAudioBuffer);
+    const transcription = await sttClient.recognize(decodedBuffer);
 
     // 会話履歴取得
     const data = body.id ? await dbClient.get(body.id) : undefined;
@@ -42,20 +42,17 @@ export const conversations = async (request: HttpRequest, context: InvocationCon
     const messages = prompt.generate(transcription, histories);
     const answer = await chatClient.chatCompletions(messages);
 
+    // 音声合成
+    const synthesizedSpeech = await synthesisApiClient.synthesize(answer);
 
-    const synthesizedPromise = (async () => {
-        // 音声合成
-        const synthesizedSpeech = await synthesisApiClient.synthesize(answer);
+    // gzip圧縮
+    const gzipAsync = util.promisify(zlib.gzip);
+    const comprettionBeffer = await gzipAsync(synthesizedSpeech);
 
-        // gzip圧縮
-        const gzipAsync = util.promisify(zlib.gzip);
-        const comprettionBeffer = await gzipAsync(synthesizedSpeech);
+    // base64エンコード
+    const EncordedAnser = comprettionBeffer.toString('base64');
 
-        // base64エンコード
-        return { buffer: synthesizedSpeech, base64Encorded: comprettionBeffer.toString('base64') };
-    })();
-
-    const dbPromise: Promise<Conversation> = (async () => {
+    const conversation = await (async () => {
         const maxSeq = data ? Math.max(...histories.map(value => value.seq)) : 0;
         const newContents: ConversationContent[] = [
             ...histories,
@@ -72,13 +69,10 @@ export const conversations = async (request: HttpRequest, context: InvocationCon
         }
     })();
 
-    const { buffer, base64Encorded } = await synthesizedPromise;
-    const conversation = await dbPromise;
-
     if (!body.responseType || body.responseType === 'json') {
-        return { jsonBody: { id: conversation.id, answer: answer, audio: base64Encorded } };
+        return { jsonBody: { id: conversation.id, answer: answer, audioData: EncordedAnser } };
     } else {
-        return { body: buffer, headers: { "content-type": "audio/wav" } }
+        return { body: comprettionBeffer, headers: { "Content-Type": "audio/wav" } }
     }
 };
 
