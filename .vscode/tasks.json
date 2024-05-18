@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+			"type": "func",
+			"label": "func: host start",
+			"command": "host start",
+			"isBackground": true,
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": "$func-node-watch",
+      "dependsOn": "npm: build (functions)"
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "label": "npm: build (functions)",
+      "path": "backend",
+      "dependsOn": "npm: clean (functions)",
+      "problemMatcher": "$tsc"
+    },
+    {
+      "type": "npm",
+      "script": "install",
+      "label": "npm: install (functions)",
+      "path": "backend"
+    },
+    {
+      "type": "npm",
+      "script": "prune",
+      "label": "npm: prune (functions)",
+      "path": "backend",
+      "dependsOn": "npm: build (functions)"
+    },
+    {
+      "type": "npm",
+      "script": "clean",
+      "label": "npm: clean (functions)",
+      "path": "backend",
+      "dependsOn": "npm: install (functions)"
+    }
+  ]
+}
