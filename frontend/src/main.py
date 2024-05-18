@@ -43,7 +43,7 @@ def record_audio(duration, rate=48000, format=pyaudio.paInt16, channels=1):
     
     start_time = time.time()
     last_voice_time = time.time()
-    silence_timeout = 1
+    silence_timeout = 2
     
     print('recording...')
     
