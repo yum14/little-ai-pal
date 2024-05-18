@@ -105,25 +105,31 @@ def play_audio(audio_data: bytes):
     # PyAudioの設定
     p = pyaudio.PyAudio()
 
-    # ストリームの設定
-    stream = p.open(
-        format=p.get_format_from_width(wf.getsampwidth()),
-        channels=wf.getnchannels(),
-        rate=wf.getframerate(),
-        output=True
-    )
-
-    # データを少しずつ読み込みながら再生
-    chunk = 1024
-    data = wf.readframes(chunk)
-    while data:
-        stream.write(data)
+    try:
+        # ストリームの設定
+        stream = p.open(
+            format=p.get_format_from_width(wf.getsampwidth()),
+            channels=wf.getnchannels(),
+            rate=wf.getframerate(),
+            output=True
+        )
+        
+        # データを少しずつ読み込みながら再生
+        chunk = 1024
         data = wf.readframes(chunk)
+        while data:
+            stream.write(data)
+            data = wf.readframes(chunk)
+        
+    except Exception as e:
+        print(e)
+        
+    finally:
+        # ストリームを閉じる
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
 
-    # ストリームを閉じる
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
 
 def main():
 
