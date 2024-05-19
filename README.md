@@ -2,8 +2,10 @@
 
 # クライアント環境
 
-`pydub`で`ffmpeg`が必要なのでインストールする
+## portaudioライブラリのインストール
+
+PyAudioはportaudioライブラリに依存しているため、インストールが必要（portaudio.hが見つからない旨のエラーとなる）
 
 ```
-brew install ffmpeg
+sudo apt-get install portaudio19-dev
 ```
