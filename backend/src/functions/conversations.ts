@@ -11,11 +11,17 @@ import { ConversationPrompt, IConversationPrompt, Parameter } from '../services/
 import { VoicevoxTextToSpeech } from '../services/voicevoxTextToSpeech';
 import { ITextToSpeech } from '../interfaces/ITextToSpeech';
 import { AzureTextToSpeech } from '../services/azureTextToSpeech';
+import { ok } from 'assert';
 
-interface RequestBody {
+interface VoiceChatRequestBody {
     id: string;
     audioData: string;
     responseType: 'wav' | 'json';
+}
+
+interface TextChatRequestBody {
+    id: string;
+    phrase: string;
 }
 
 const dbClient = container.resolve(ConversationsDbClient) as IConversationsDbClient;
@@ -24,9 +30,9 @@ const sttClient = container.resolve(AzureSpeechToText) as ISpeechToText;
 const prompt = container.resolve(ConversationPrompt) as IConversationPrompt;
 const synthesisApiClient = container.resolve(AzureTextToSpeech) as ITextToSpeech;
 
-export const conversations = async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+export const voiceChat = async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
 
-    const body = await request.json() as RequestBody;
+    const body = await request.json() as VoiceChatRequestBody;
 
     // Base64デコード
     const decodedBuffer = Buffer.from(body.audioData, 'base64');
@@ -77,9 +83,48 @@ export const conversations = async (request: HttpRequest, context: InvocationCon
 };
 
 
-app.http('conversations', {
+export const textChat = async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
+
+    const body = await request.json() as TextChatRequestBody;
+
+    // 会話履歴取得
+    const data = body.id ? await dbClient.get(body.id) : undefined;
+    const histories = data?.contents.map(value => value as Parameter) ?? [];
+
+    // OpenAI AIの回答
+    const messages = prompt.generate( body.phrase, histories);
+    const answer = await chatClient.chatCompletions(messages);
+
+    const conversation = await (async () => {
+        const maxSeq = data ? Math.max(...histories.map(value => value.seq)) : 0;
+        const newContents: ConversationContent[] = [
+            ...histories,
+            { role: 'user', content: body.phrase, seq: maxSeq + 1 },
+            { role: 'assistant', content: answer, seq: maxSeq + 2 }
+        ];
+
+        if (data) {
+            // DB更新
+            return (await dbClient.replace({ id: data.id, contents: newContents, createdOn: data.createdOn }));
+        } else {
+            // DB登録
+            return (await dbClient.create({ contents: newContents }));
+        }
+    })();
+
+    return { jsonBody: { id: conversation.id, answer: answer } }
+}
+
+app.http('voiceChat', {
     methods: ['POST'],
-    authLevel: 'anonymous',
-    handler: conversations
+    authLevel: 'function',
+    handler: voiceChat,
+    route: "conversations/voiceChat"
 });
 
+app.http('textChat', {
+    methods: ['POST'],
+    authLevel: 'function',
+    handler: textChat,
+    route: "conversations/textChat"
+});
