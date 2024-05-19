@@ -1,0 +1,21 @@
+# 他にもserviceがあるので、そこは省略。
+version: '3.7'
+services:
+  voicevox_engine:
+    image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest
+    ports:
+      - "50021:50021"
+    restart: always
+    tty: true
+    networks:
+      - container-link
+
+networks:
+  default:
+    external:
+      name: bridge
+  container-link:
+    name: container_network
+
+volumes:
+  proxy:
