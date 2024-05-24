@@ -1,0 +1,13 @@
+[Unit]
+Description=little-ai-pal
+After=network.target
+
+[Service]
+User=pi
+Group=pi
+Type=simple
+WorkingDirectory=/home/pi/little-ai-pal/frontend/src
+ExecStart=/home/pi/little-ai-pal/frontend/venv/bin/python3 /home/pi/little-ai-pal/frontend/src/main.py
+
+[Install]
+WantedBy=multi-user.target
