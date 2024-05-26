@@ -9,7 +9,7 @@ import time
 import io
 import wave
 
-from input_example import create_test_base64
+# from input_example import create_test_base64
 
 class VoiceChat:
     def __init__(self) -> None:
