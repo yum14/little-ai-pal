@@ -34,6 +34,9 @@ https://zenn.dev/kusaremkn/articles/428c4cd34e4ff9
 
 ## スピーカーから音声出力できない場合のTips
 
+実行後、raspi-configがremoveされるので再度インストールが必要。
+ssh設定有効化もなくなるので、raspi-configで再度有効化。
+
 ```bash
 sudo apt-get remove --purge pulseaudio
 sudo reboot
@@ -54,6 +57,12 @@ sudo reboot
 dtparam=audio=on
 ```
 
+## voicevox-engineのdockerコンテナ作成
+
+```bash
+sudo apt-get install docker.io
+sudo apt-get install docker-compose
+```
 
 # クライアント環境
 
