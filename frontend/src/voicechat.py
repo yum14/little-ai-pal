@@ -1,4 +1,4 @@
-
+from typing import Tuple
 import webrtcvad
 import os
 import gzip
@@ -8,11 +8,14 @@ import pyaudio
 import time
 import io
 import wave
+from injector import inject
+from abstract.abstract_text_to_speech import AbstractTextToSpeech
+from abstract.abstract_chat import AbstractChat
+from conversation_api_client import ConversationApiClient
 
-# from input_example import create_test_base64
-
-class VoiceChat:
-    def __init__(self) -> None:
+class VoiceChat(AbstractChat):
+    @inject
+    def __init__(self, text_to_speech: AbstractTextToSpeech, conversation_api_client: ConversationApiClient) -> None:
         
         self.frame_duration = 30 # フレーム長。一度に処理される時間長。webrtcでは10,20,30msのみ対応
         self.sample_rate = os.getenv('SAMPLE_RATE') # speech service(Azure)だとなぜか16000しか動かない？
@@ -25,6 +28,12 @@ class VoiceChat:
         self.min_phrase_frames = os.getenv('MIN_PHRASE_FRAMES') # 解析に進む音声入力の最小フレーム数（20くらいでだいたい「こんにちは」がぎりぎり入るくらい）
         self.vad_aggressiveness = os.getenv('VAD_AGGRESSIVENESS') # 0~3まで。大きいほどVADが敏感に認識する（ノイズが混ざりやすくはなる）
         self.function_key = os.getenv('VOICE_CHAT_API_KEY')
+        self.first_text = os.getenv('FIRST_CHAT_TEXT')
+        self.text_to_speech = text_to_speech
+        self.conversation_api_client = conversation_api_client
+
+    def first_chat(self) -> Tuple[str, bytes]:
+        pass
 
 
     def chat(self, id: str) -> str:

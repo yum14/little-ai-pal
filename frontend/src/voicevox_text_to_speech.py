@@ -1,12 +1,14 @@
 import os
+import pyaudio
 import requests
+from abstract.abstract_text_to_speech import AbstractTextToSpeech
 
-class VoicevoxTextToSpeech:
+class VoicevoxTextToSpeech(AbstractTextToSpeech):
     def __init__(self) -> None:
         self.base_url = os.getenv('VOICEVOX_BASE_URL')
         self.speaker = os.getenv('VOICEVOX_SPEAKER')
     
-    def synthesize(self, text: str) -> bytes:
+    def synthesize(self, text: str) -> None:
         
         # クエリ作成
         query = self.__post_audio_query(text)
@@ -14,7 +16,10 @@ class VoicevoxTextToSpeech:
         # 音声合成
         audio_data = self.__post_synthesis(query)
         
-        return audio_data
+        # 再生
+        self.__play_voice_vox_audio(audio_data)
+        
+        return
     
     def __post_audio_query(self, text) -> dict:
         url = os.path.join(self.base_url, 'audio_query')
@@ -57,6 +62,20 @@ class VoicevoxTextToSpeech:
         
         return response.content
         
-        
+    def __play_voice_vox_audio(self, audio_data: bytes):
 
+        p = pyaudio.PyAudio()
+        
+        stream = p.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=24000, # voicevoxは24000
+            output=True
+        )
+        
+        stream.write(audio_data)
+        
+        stream.stop_stream()
+        stream.close()
+        p.terminate
 
