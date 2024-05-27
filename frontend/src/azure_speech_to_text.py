@@ -1,5 +1,4 @@
 import os
-import io
 import azure.cognitiveservices.speech as speechsdk
 
 class AzureSpeechToText:
