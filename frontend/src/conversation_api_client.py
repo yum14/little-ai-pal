@@ -1,17 +1,17 @@
 import os
 import requests
-from typing import Tuple
 from abstract.abstract_conversation_api_client import AbstractConversationApiClient
+from model.conversation_response import ConversationResponse
 
 class ConversationApiClient(AbstractConversationApiClient):
     def __init__(self) -> None:
         self.conversation_base_url = os.getenv('CONVERSATION_BASE_URL')
         self.function_key = os.getenv('TEXT_CHAT_API_KEY')
     
-    def interact(self, text: str, id='') -> Tuple[str, str]:
+    def interact(self, text: str, id='') -> ConversationResponse:
             # 会話APIリクエスト
         response_dict = self.__send_chat_api(text, id)
-        return (response_dict['id'], response_dict['answer'])
+        return ConversationResponse(response_dict['id'], response_dict['message'], response_dict['finished'])
 
     def __send_chat_api(self, text, id='') -> dict:
         
@@ -30,3 +30,4 @@ class ConversationApiClient(AbstractConversationApiClient):
             print('エラーが発生しました:', response.status_code)
         
         return response.json()
+    
