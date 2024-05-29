@@ -6,7 +6,7 @@ import os
 from di_modules.textchat_module import ConversationApiClientModule, TextToSpeechConfig, TextToSpeechModule
 from abstract.abstract_chat import AbstractChat
 from type.synthesize_type import SynthesizeType
-from voicechat import VoiceChat
+# from voicechat import VoiceChat
 from textchat import TextChat
 import pvporcupine
 import struct
@@ -47,7 +47,10 @@ def main():
             
             
             # 最初の挨拶
-            conversation_id = textChat.first_chat()
+            conversation_id, finished = textChat.first_chat()
+    
+            if finished:
+                continue
     
             last_conversation_time = time.time()
             
@@ -57,13 +60,16 @@ def main():
                     break
                 
                 # クライアント側で文字起こし、音声合成、再生
-                textChat.chat(conversation_id)
+                _, finished = textChat.chat(conversation_id)
                             
                 # サーバー側で文字起こし、音声合成
                 # voiceChat = VoiceChat()
                 # conversation_id = voiceChat.chat(conversation_id)
                 
                 last_conversation_time = time.time()
+                
+                if finished:
+                    break
 
         except Exception as e:
             print(e)

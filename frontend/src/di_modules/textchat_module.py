@@ -2,7 +2,7 @@ from injector import Module, provider
 from azure_text_to_speech import AzureTextToSpeech
 from abstract.abstract_conversation_api_client import AbstractConversationApiClient
 from conversation_api_client import ConversationApiClient
-from voicevox_text_to_speech import VoicevoxTextToSpeech
+# from voicevox_text_to_speech import VoicevoxTextToSpeech
 from type.synthesize_type import SynthesizeType
 from abstract.abstract_text_to_speech import AbstractTextToSpeech
 
@@ -16,10 +16,11 @@ class TextToSpeechModule(Module):
 
     @provider
     def provide(self) -> AbstractTextToSpeech:
-        if self.text_to_speech_config.synthesize_type == SynthesizeType.Voicevox:
-            return VoicevoxTextToSpeech()
-        else:
-            return AzureTextToSpeech()
+        # if self.text_to_speech_config.synthesize_type == SynthesizeType.Voicevox:
+        #     return VoicevoxTextToSpeech()
+        # else:
+        #     return AzureTextToSpeech()
+        return AzureTextToSpeech()
 
 class ConversationApiClientModule(Module):
     @provider

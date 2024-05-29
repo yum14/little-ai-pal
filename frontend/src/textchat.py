@@ -1,4 +1,5 @@
 import os
+from typing import Tuple
 from injector import inject
 from azure_speech_to_text import AzureSpeechToText
 from abstract.abstract_text_to_speech import AbstractTextToSpeech
@@ -14,16 +15,16 @@ class TextChat(AbstractChat):
         self.text_to_speech = text_to_speech
         self.conversation_api_client = conversation_api_client
         
-    def first_chat(self) -> str:
+    def first_chat(self) -> Tuple[str, bool]:
         # 会話APIリクエスト
-        conversation_id, answer = self.conversation_api_client.interact(self.first_text)
+        response = self.conversation_api_client.interact(self.first_text)
         
         # 音声合成、再生
-        audio_data = self.text_to_speech.synthesize(answer)
+        audio_data = self.text_to_speech.synthesize(response.message)
         
-        return conversation_id
+        return (response.id, response.finished)
     
-    def chat(self, id: str) -> None:
+    def chat(self, id: str) -> Tuple[str, bool]:
         
         print('recording....')
         
@@ -34,10 +35,10 @@ class TextChat(AbstractChat):
         print('recording finished...')
         
         # 会話APIリクエスト
-        _, answer = self.conversation_api_client.interact(text, id)
+        response = self.conversation_api_client.interact(text, id)
         
         # 音声出力
-        audio_data = self.text_to_speech.synthesize(answer)
+        audio_data = self.text_to_speech.synthesize(response.message)
         
-        return
+        return (response.id, response.finished)
     

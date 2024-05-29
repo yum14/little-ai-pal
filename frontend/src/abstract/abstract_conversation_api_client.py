@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
-from typing import Tuple
+from model.conversation_response import ConversationResponse
 
 class AbstractConversationApiClient(metaclass=ABCMeta):
     @abstractmethod
-    def interact(self, text: str, id='') -> Tuple[str, str]:
+    def interact(self, text: str, id='') -> ConversationResponse:
         raise NotImplementedError

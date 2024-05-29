@@ -14,12 +14,13 @@ class ChatCompletionsClient implements IChatCompletionsClient {
     
         const openaiResponse = await this.openai.chat.completions.create({
             model: process.env.CHAT_COMPLETIONS_GPT_MODEL,
-            messages: messages
+            messages: messages,
+            response_format: { type: "json_object" }
         }).catch((error: Error) => {
             throw new Error('The request to the chat completions API failed. message: ' + error.message);
         });
     
-        return openaiResponse.choices[0].message?.content ?? '';
+        return openaiResponse.choices[0].message?.content ?? '{}';
     };
 }
 
