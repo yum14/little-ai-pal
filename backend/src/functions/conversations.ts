@@ -11,8 +11,6 @@ import { ConversationPrompt, IConversationPrompt, Parameter } from '../services/
 import { VoicevoxTextToSpeech } from '../services/voicevoxTextToSpeech';
 import { ITextToSpeech } from '../interfaces/ITextToSpeech';
 import { AzureTextToSpeech } from '../services/azureTextToSpeech';
-import { ok } from 'assert';
-import { finished } from 'stream';
 
 interface VoiceChatRequestBody {
     id: string;
