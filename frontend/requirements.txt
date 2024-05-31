@@ -2,6 +2,8 @@ azure-cognitiveservices-speech==1.37.0
 certifi==2024.2.2
 charset-normalizer==3.3.2
 idna==3.7
+injector==0.21.0
+pvporcupine==3.0.2
 PyAudio==0.2.14
 python-dotenv==1.0.1
 requests==2.31.0
