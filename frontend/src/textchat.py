@@ -1,43 +1,44 @@
 import os
-import requests
+from typing import Tuple
+from injector import inject
 from azure_speech_to_text import AzureSpeechToText
-from azure_text_to_speech import AzureTextToSpeech
+from abstract.abstract_text_to_speech import AbstractTextToSpeech
+from abstract.abstract_chat import AbstractChat
+from conversation_api_client import ConversationApiClient
 
-class TextChat:
-    def __init__(self) -> None:
+class TextChat(AbstractChat):
+    @inject
+    def __init__(self, text_to_speech: AbstractTextToSpeech, conversation_api_client: ConversationApiClient) -> None:
         self.conversation_base_url = os.getenv('CONVERSATION_BASE_URL')
         self.function_key = os.getenv('TEXT_CHAT_API_KEY')
-
-    def chat(self, id='') -> str:
+        self.first_text = os.getenv('FIRST_CHAT_TEXT')
+        self.text_to_speech = text_to_speech
+        self.conversation_api_client = conversation_api_client
+        
+    def first_chat(self) -> Tuple[str, bool]:
+        # 会話APIリクエスト
+        response = self.conversation_api_client.interact(self.first_text)
+        
+        # 音声合成、再生
+        audio_data = self.text_to_speech.synthesize(response.message)
+        
+        return (response.id, response.finished)
+    
+    def chat(self, id: str) -> Tuple[str, bool]:
+        
+        print('recording....')
         
         # 録音および文字起こし
         speech_to_text = AzureSpeechToText()
         text = speech_to_text.recognize()
         
+        print('recording finished...')
+        
         # 会話APIリクエスト
-        response_dict = self.__send_chat_api(text, id)
-        conversation_id = response_dict['id']
+        response = self.conversation_api_client.interact(text, id)
         
-        # 音声出力(azure or voicebox)
-        text_to_speech = AzureTextToSpeech()
-        text_to_speech.synthesize(response_dict['answer'])
+        # 音声出力
+        audio_data = self.text_to_speech.synthesize(response.message)
         
-        return conversation_id
+        return (response.id, response.finished)
     
-    def __send_chat_api(self, text, id=''):
-        
-        url = os.path.join(self.conversation_base_url, f'textChat?code={self.function_key}')
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        data = {
-            'id': id if id else None,
-            'phrase': text
-        }
-
-        response = requests.post(url, json=data, headers=headers)
-        
-        if response.status_code != 200:
-            print('エラーが発生しました:', response.status_code)
-        
-        return response.json()
