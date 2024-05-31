@@ -10,6 +10,7 @@ from type.synthesize_type import SynthesizeType
 from textchat import TextChat
 import pvporcupine
 import struct
+import numpy as np
 
 dev_env_path = dotenv.find_dotenv('.env.development')
 
@@ -86,22 +87,35 @@ def __recognize_wake_word() -> None:
     )
 
     p = pyaudio.PyAudio()
+    
+    # デフォルトのオーディオデバイスのサンプリングレート
+    default_sample_rate = int(p.get_default_input_device_info()["defaultSampleRate"])
+
     audio_stream = p.open(
-        rate=porcupine.sample_rate,
+        rate=default_sample_rate,
         channels=1,
         format=pyaudio.paInt16,
         input=True,
-        frames_per_buffer=porcupine.frame_length
+        frames_per_buffer=int(porcupine.frame_length * (default_sample_rate / porcupine.sample_rate))
     )
     
     try:
         while True:
-            pcm = audio_stream.read(porcupine.frame_length)
-            pcm = struct.unpack_from('h' * porcupine.frame_length, pcm)
-        
-            # ウェイクワード認識
-            keyword_index = porcupine.process(pcm)
             
+            pcm = audio_stream.read(int(porcupine.frame_length * (default_sample_rate / porcupine.sample_rate)))
+            pcm = np.frombuffer(pcm, dtype=np.int16)
+            pcm = pcm.astype(np.float32)
+
+            # 16kHzにダウンサンプリング
+            pcm_resampled = np.interp(
+                np.linspace(0, len(pcm), porcupine.frame_length, endpoint=False),
+                np.arange(len(pcm)),
+                pcm
+            ).astype(np.int16)
+            
+            # ウェイクワード認識
+            keyword_index = porcupine.process(pcm_resampled.tolist())
+
             if keyword_index >= 0:
                 # ウェイクワードが認識された場合
                 return
